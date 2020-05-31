@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: postgres-deployment
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            component: postgres_db
+    template:
+        metadata:
+            labels:
+                component: postgres_db
+        spec:
+            volumes:
+                # storage allocation
+                - name: database-storage
+                  persistentVolumeClaim:
+                    claimName: database-persistent-volume-claim
+            containers:
+                - name: postgres
+                  image: postgres
+                  ports:
+                    - containerPort: 5432
+                  volumeMounts:
+                    - name: database-storage
+                      mountPath: /var/lib/postgresql/data  # where storage should be made available (this is the default postgres data directory)
+                      subPath: postgres  # save to "postgres" directory inside of volume mount
+                  env:
+                    # secret created using the following imperative command:
+                    #   kubectl create secret generic pgpassword --from-literal DB_PASSWORD=mydbpassword
+                    - name: POSTGRES_PASSWORD
+                      valueFrom:
+                        secretKeyRef:
+                            name: pgpassword
+                            key: DB_PASSWORD
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: postgres-cluster-ip-service
+spec:
+    type: ClusterIP
+    selector:
+        component: postgres_db
+    ports:
+        - port: 5432
+          targetPort: 5432
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: database-persistent-volume-claim
+spec:
+    # Reference: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#persistentvolumeclaimspec-v1-core
+    accessModes:  # desired access modes the volume should have
+        - ReadWriteOnce  # the volume can be mounted as read-write by a single node
+    resources:  # minimum resources the volume should have
+        requests:  # minimum amount of compute resources required
+            storage: 2Gi

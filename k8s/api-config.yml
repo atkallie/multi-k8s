@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: api-deployment
+spec:
+    replicas: 3
+    selector:
+        matchLabels:
+            component: express_api
+    template:
+        metadata:
+            labels:
+                component: express_api
+        spec:
+            containers:
+                - name: api
+                  image: kal17da/multicontainer-api
+                  ports:
+                      - containerPort: 5000
+                  env:
+                    - name: REDIS_HOST
+                      value: redis-cluster-ip-service
+                    - name: REDIS_PORT
+                      value: "6379"
+                    - name: DB_HOST
+                      value: postgres-cluster-ip-service
+                    - name: DB_PORT
+                      value: "5432"
+                    - name: DB_USER
+                      value: postgres
+                    - name: DB_NAME
+                      value: postgres
+
+                    # secret created using the following imperative command:
+                    #   kubectl create secret generic pgpassword --from-literal DB_PASSWORD=mydbpassword
+                    - name: DB_PASSWORD
+                      valueFrom:
+                        secretKeyRef:
+                            name: pgpassword
+                            key: DB_PASSWORD
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: api-cluster-ip-service
+spec:
+    type: ClusterIP
+    selector:
+        component: express_api
+    ports:
+        - port: 5000
+          targetPort: 5000

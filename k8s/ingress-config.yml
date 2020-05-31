@@ -1,0 +1,24 @@
+apiVersion: extensions/v1beta1
+kind: Ingress  # Ingress exposes HTTP and HTTPS routes from outside the cluster to services within the cluster
+metadata:
+    name: ingress-service
+
+    # annotations are used to attach arbitrary non-identifying metadata to objects
+    # unlike labels, they are not used to identify and select objects
+    # Reference: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+    annotations:
+        kubernetes.io/ingress.class: nginx
+        nginx.ingress.kubernetes.io/rewrite-target: /$1
+        # above is NGINX configuration necessary to rewrite the path as we did earlier (/api/ --> /)
+spec:
+    rules:
+        - http:
+            paths:
+                - path: /?(.*)
+                  backend:
+                    serviceName: client-cluster-ip-service
+                    servicePort: 3000
+                - path: /api/?(.*)
+                  backend:
+                    serviceName: api-cluster-ip-service
+                    servicePort: 5000
