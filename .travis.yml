@@ -1,0 +1,66 @@
+language: generic
+sudo: required
+services:
+    - docker
+
+env:
+    global:
+        - GIT_SHA=$(git rev-parse HEAD)  # store the SHA-1 hash of the latest commit
+        - CLOUDSDK_CORE_DISABLE_PROMPTS=1  # disable all interactive prompts when running gcloud commands
+before_install:
+    # === SET UP GCLOUD ===
+    # following line was outputted from "travis encrypt-file ..." command (see below)
+    # "travis encrypt-file ..." also outputted service-account.json.enc file that we must include in our repository
+    - openssl aes-256-cbc -K $encrypted_9f3b5599b056_key -iv $encrypted_9f3b5599b056_iv -in service-account.json.enc -out service-account.json -d
+    - curl https://sdk.cloud.google.com | bash > /dev/null;  # Reference: https://cloud.google.com/sdk/docs/downloads-interactive
+    - source $HOME/google-cloud-sdk/path.bash.inc
+    - gcloud components update kubectl  # install and update kubectl inside travis environment
+    - gcloud auth activate-service-account --key-file service-account.json
+    - gcloud config set project development-278407  # "development-278407" is our project ID
+    - gcloud config set compute/zone us-central1-c  # "us-central1-c" is the location of our k8s cluster
+    - gcloud container clusters get-credentials multi-cluster # "multi-cluster" is the name of our k8s cluster
+
+    # === DOCKER HUB LOGIN ===
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID"  --password-stdin
+
+    # === BUILD DOCKER IMAGE TO RUN TEST SUITE ===
+    # only doing tests for the frontend assets (React) here, so we only build one image
+    - docker build -t kal17da/multicontainer-client-dev -f ./client/Dockerfile.dev ./client/
+
+script:
+    # === RUN TEST SUITE ===
+    # run the test suite in CI (continuous integration) mode -- non-interactive (see create-react-app for more)
+    - docker run -e CI=true kal17da/multicontainer-client-dev npm test
+
+deploy:
+    provider: script  # no pre-configured provider supported by Travis for Google Cloud k8s (use script instead)
+    script: bash ./deploy.sh
+    on:
+        branch: master
+
+
+# (Locally) Install Travis CLI inside of a Docker Container in order to encrypt GCloud service-account.json
+#      >  docker run -it -v $(pwd):/app ruby:2.4 sh
+#      >  gem install travis
+#      >  travis login --github-token <GITHUB_OAUTH_TOKEN>
+#      >  travis encrypt-file <PATH_TO_GCLOUD_SERVICE_ACCOUNT_JSON_FILE> -r <GITHUB_USERNAME>/<GITHUB_REPO>
+
+# (Google Cloud Shell) Store database password in a k8s secret object
+#      >  gcloud config set project development-278407
+#      >  gcloud config set compute/zone us-central1-c
+#      >  gcloud container clusters get-credentials multi-cluster
+#      >  kubectl create secret generic pgpassword --from-literal DB_PASSWORD=mydbpassword
+
+# (Google Cloud Shell) Install Helm v3 (k8s package manager)
+#      >  curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+#      >  chmod 700 get_helm.sh
+#      >  ./get_helm.sh
+
+# (Google Cloud Shell) Add a chart repository (chart is helm's packaging format). Here, the official Helm stable charts are added
+#       Note:
+#           RBAC := Role-Based Access Control allows you to regulate access to
+#           computer or network resources based on the roles of individual
+#           users within your organization
+#
+#      >  helm repo add stable https://kubernetes-charts.storage.googleapis.com/
+#      >  helm install my-nginx stable/nginx-ingress --set rbac.create=true
