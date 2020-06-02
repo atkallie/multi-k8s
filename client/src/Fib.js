@@ -65,7 +65,7 @@ class Fib extends Component {
         return (
             <div>
                 <form onSubmit={this.handleSubmit}>
-                    <label>(k8s) Enter your index:</label>
+                    <label>(kubernetes) Enter your index:</label>
                     <input
                         type="text" value={index}
                         onChange={this.handleChange}
