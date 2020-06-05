@@ -1,0 +1,35 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: ClusterIssuer
+metadata:
+    name: letsencrypt-prod
+spec:
+    acme:
+        server: https://acme-v02.api.letsencrypt.org/directory
+        email: "youremail@email.com"
+        privateKeySecretRef:
+            name: letsencrypt-prod
+            solvers:
+                - http01:
+                    ingress:
+                        class: nginx
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+    name: tonystark-tls
+spec:
+    secretName: tonystark-tls-secret
+    issuerRef:
+        name: letsencrypt-prod
+        kind: ClusterIssuer
+    commonName: tonystark.dev
+    dnsNames:
+        - tonystark.dev
+        - www.tonystark.dev
+    acme:
+        config:
+            - http01:
+                ingressClass: nginx
+              domains:
+                - tonystark.dev
+                - www.tonystark.dev

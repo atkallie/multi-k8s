@@ -64,3 +64,13 @@ deploy:
 #
 #      >  helm repo add stable https://kubernetes-charts.storage.googleapis.com/
 #      >  helm install my-nginx stable/nginx-ingress --set rbac.create=true
+
+
+# (Google Cloud Shell) HTTPS Setup using jetstack cert-manager
+#       Note: You will need to configure a domain name to point to your load balancer's IP address (see img directory)
+#
+#       All resources (the CustomResourceDefinitions, cert-manager, namespace, and the webhook component) are included in a single YAML manifest file:
+#         > kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.15.1/cert-manager.yaml
+#
+#       Verify that cert-manager was installed properly:
+#         > kubectl get pods --namespace cert-manager
