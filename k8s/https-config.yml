@@ -5,13 +5,14 @@ metadata:
 spec:
     acme:
         server: https://acme-v02.api.letsencrypt.org/directory
-        email: "youremail@email.com"
+        email: "kal17da@gmail.com"
         privateKeySecretRef:
             name: letsencrypt-prod
-            solvers:
-                - http01:
-                    ingress:
-                        class: nginx
+        solvers:
+            # https://cert-manager.io/docs/configuration/acme/http01/
+            - http01:
+                ingress:
+                    class: nginx
 ---
 apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
