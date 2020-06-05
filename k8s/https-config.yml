@@ -23,14 +23,13 @@ spec:
     issuerRef:
         name: letsencrypt-prod
         kind: ClusterIssuer
+        group: cert-manager.io
     commonName: tonystark.dev
     dnsNames:
         - tonystark.dev
         - www.tonystark.dev
-    acme:
-        config:
-            - http01:
-                ingressClass: nginx
-              domains:
-                - tonystark.dev
-                - www.tonystark.dev
+
+
+# You can run "kubectl get clusterissuers", "kubectl describe clusterissuers",
+# "kubectl get certificates", and "kubectl describe certificates" to get more
+# info on the status of certificate issuing

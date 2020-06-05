@@ -8,11 +8,15 @@ metadata:
     # Reference: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
     annotations:
         kubernetes.io/ingress.class: nginx
+        # following is NGINX configuration necessary to rewrite the path as we did earlier (/api/ --> /)
         nginx.ingress.kubernetes.io/rewrite-target: /$1
-        # above is NGINX configuration necessary to rewrite the path as we did earlier (/api/ --> /)
+        # following config should be used ONLY if SSL/TLS cert is being used to enable HTTPS
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        cert-manager.io/issuer: letsencrypt-prod  # name of issuer (see https-config.yml)
 spec:
     rules:
-        - http:
+        - host: tonystark.dev  # host key was added after domain was setup (omitted before that)
+          http:
             paths:
                 - path: /?(.*)
                   backend:
@@ -22,3 +26,23 @@ spec:
                   backend:
                     serviceName: api-cluster-ip-service
                     servicePort: 5000
+
+        # we need to duplicate the ruleset for "www" (entire section - host & http - omitted before domain was setup)
+        - host: www.tonystark.dev
+          http:
+            paths:
+                - path: /?(.*)
+                  backend:
+                    serviceName: client-cluster-ip-service
+                    servicePort: 3000
+                - path: /api/?(.*)
+                  backend:
+                    serviceName: api-cluster-ip-service
+                    servicePort: 5000
+
+    # following should be used ONLY if SSL/TLS cert is being used to enable HTTPS (see https-config.yml)
+    tls:
+        - hosts:
+            - tonystark.dev
+            - www.tonystark.dev
+          secretName: tonystark-tls-secret
